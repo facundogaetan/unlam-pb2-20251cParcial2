@@ -11,11 +11,15 @@ import src.ClienteDuplicadoException;
 import src.ClienteInexistenteException;
 import src.Cuenta;
 import src.CuentaCorriente;
-import src.CuentaInexistenteException;
+import src.CuentaNoExisteException;
 import src.CuentaSueldo;
 import src.SaldoInsuficienteException;
 
 import static org.junit.Assert.fail;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public class BancoTest {
 	private Cliente cliente1;
@@ -54,12 +58,11 @@ public class BancoTest {
 		cliente5 = new Cliente("44556677", "Roberto Diaz");
 		cliente6 = new Cliente("55667788", "Sofia Ruiz");
 		cliente7 = new Cliente("55667788", "Sofia Ruiz");
-		
 
 		// cbu dni saldo inicial
 		cuentaSueldo = new CuentaSueldo("CBU001", cliente1.getDni(), 2000.0); // getDni
 		cajaDeAhorros = new CajaDeAhorros("CBU002", cliente1.getDni(), 10000.0);
-		cuentaCorriente = new CuentaCorriente("CBU003", cliente2.getDni(), 500.0);
+		cuentaCorriente = new CuentaCorriente("CBU003", cliente2.getDni(), 500.0); // la que tiene menos saldo
 		cuentaSueldo2 = new CuentaSueldo("CBU001", cliente3.getDni(), 3000.0); // CBU duplicado
 		cuentaSueldo2 = new CuentaSueldo("CBU004", cliente3.getDni(), 3000.0);
 		cuentaSueldo3 = new CuentaSueldo("CBU005", cliente4.getDni(), 2500.0);
@@ -74,7 +77,7 @@ public class BancoTest {
 																					// cliente
 
 		cuentaCorriente2 = new CuentaCorriente("CBU014", cliente3.getDni(), 1000.0);
-		cuentaCorriente5 = new CuentaCorriente("CBU006", cliente2.getDni(), 800.0);
+		cuentaCorriente5 = new CuentaCorriente("CBU006", cliente2.getDni(), 800.0); // esta sobreescribre cuentaSueldo4
 		cuentaCorriente6 = new CuentaCorriente("CBU018", cliente6.getDni(), 2000.0);
 
 		banco = new Banco();
@@ -113,7 +116,8 @@ public class BancoTest {
 			banco.agregarCuenta(cuentaCorriente5);// no incializada
 			banco.agregarCuenta(cuentaCorriente6);
 		} catch (ClienteInexistenteException e) {
-			// fail("Configuracion inicial fallida: " + e.getMessage());
+			fail("Configuracion inicial fallida: " + e.getMessage());
+			
 		}
 		Assert.assertEquals(Integer.valueOf(6), banco.getCantidadClientes()); // ########## hardcoded cambiar a 6
 																				// ##########
@@ -142,7 +146,13 @@ public class BancoTest {
 	@Test
 	public void queNoSePuedaExtraer2500PesosDeUnaCuentaSueldoConSaldoIgualA2000Pesos()
 			throws SaldoInsuficienteException {
-		cuentaSueldo.extraer(2500.0);
+		// cuentaSueldo = new CuentaSueldo("CBU001", cliente1.getDni(), 2000.0);
+		try {
+			cuentaSueldo.extraer(2500.0);
+			fail("Se esperaba saldoInsuficienteExcepcion");
+		} catch (SaldoInsuficienteException e) {
+			Assert.assertEquals(2000, cuentaSueldo.getSaldo(), 0.01);
+		}
 
 	}
 
@@ -150,7 +160,6 @@ public class BancoTest {
 	public void queAlRealizar6ExtraccionesDe1000EnUnaCajaDeAhorroConSaldoInicialDe10000SuSaldoFinalSea3900()
 			throws SaldoInsuficienteException {
 		// cajaDeAhorros = new CajaDeAhorros("CBU002", cliente1.getDni(), 10000.0);
-
 		cajaDeAhorros.setSaldo(10000);
 
 		cajaDeAhorros.extraer(1000.0);
@@ -175,8 +184,11 @@ public class BancoTest {
 			cajaDeAhorros4.extraer(1000.0);
 			cajaDeAhorros4.extraer(1000.0);
 
-		} catch (SaldoInsuficienteException e) {
 			cajaDeAhorros4.extraer(1000.0);
+			fail("Se esperaba SaldoInsuficienteException");
+
+		} catch (SaldoInsuficienteException e) {
+			Assert.assertEquals(900.0, cajaDeAhorros4.getSaldo(), 0.01);
 
 		}
 
@@ -192,36 +204,85 @@ public class BancoTest {
 	public void queSeCobreRecargoAlRealizarUnaExtraccionMayorAlSaldoEnUnaCuentaCorriente() {
 		// cuentaCorriente2 = new CuentaCorriente("CBU014", cliente3.getDni(), 1000.0);
 		cuentaCorriente2.extraer(2000.0);
-
+		//1000 - 2000 = -1000 + (-50) = -1050
 		Assert.assertEquals(-1050.0, cuentaCorriente2.getSaldo(), 0.0);
 
 	}
 
 	@Test
-	public void queAlIntentarDarDeAltaUnaCuentaAUnClienteInexistenteLanceExcepcion() throws CuentaInexistenteException {
+	public void queAlIntentarDarDeAltaUnaCuentaAUnClienteInexistenteLanceExcepcion() throws CuentaNoExisteException {
 
-		Cuenta cuenta999 = new CuentaSueldo ("CBU999", "99999999" , 9999.0);
-		
-		
+		Cuenta cuenta999 = new CuentaSueldo("CBU999", "99999999", 9999.0);
+
 		try {
 			banco.agregarCuenta(cuenta999);
 			fail("Se esperaba ClienteInexistenteExcepcion");
 		} catch (ClienteInexistenteException e) {
-			
+
 		}
-		
 
 	}
 
 	@Test
-	public void queAlBuscarUnaCuentaPorCBUErroneoLanceExcepcion() throws CuentaInexistenteException {
+	public void queAlBuscarUnaCuentaPorCBUErroneoLanceExcepcion() throws CuentaNoExisteException {
 		// cuentaSueldo = new CuentaSueldo("CBU001", cliente1.getDni(), 2000.0);
 		try {
 			banco.getCuenta("CBU999");
 			fail("Se esperaba cuentaInexistenteExcepcion");
-		} catch (CuentaInexistenteException e) {
-			
+		} catch (CuentaNoExisteException e) {
+
 		}
 
 	}
+
+	@Test
+	public void queSeObtengaElListadoDeClientesOrdenadosPorDni() {
+		List<Cliente> clientes = new ArrayList<>(banco.getClientes());
+
+		for (Cliente aux : clientes) {
+			System.out.println(aux.getDni());
+		}
+		// cliente1 = new Cliente("12345678", "Juan Perez"); mas bajo
+		Assert.assertEquals("12345678", clientes.get(0).getDni());
+
+	}
+
+	@Test
+	public void queSeObtengaUnListadoDeTodasLasCuentasOrdenadoPorSaldo() {
+		List<Cuenta> cuentas = new ArrayList<>(banco.getCuentas());
+		cuentas.sort(Comparator.comparing(Cuenta::getSaldo));
+
+		for (Cuenta aux : cuentas) {
+			System.out.println(aux.getSaldo());
+		}
+		cuentaCorriente = new CuentaCorriente("CBU003", cliente2.getDni(), 500.0); // la que tiene menos saldo
+		Assert.assertEquals(500.0, cuentas.get(0).getSaldo(), 0.01);
+	}
+
+	@Test
+	public void queSeObtengaUnListadoDeCuentasCorrientesOrdenadoPorSaldo() {
+		List<Cuenta> cuentasSinFiltrar = new ArrayList<>(banco.getCuentas());
+		List<CuentaCorriente> cuentasCorrientes = new ArrayList<>();
+		for (Cuenta aux : cuentasSinFiltrar) {
+			if (aux instanceof CuentaCorriente) {
+				cuentasCorrientes.add((CuentaCorriente) aux);
+			}
+		}
+		cuentasCorrientes.sort(Comparator.comparing(Cuenta::getSaldo));
+		Assert.assertEquals(500.0, cuentasCorrientes.get(0).getSaldo(), 0.01);
+	}
+	
+	@Test
+	public void queSeObtengaUnListadoDeCuentasCorrientesDeudorasOrdenadoPorSaldoDeudor() {
+		//reutilizar codigo del test anterior
+		List<Cuenta> cuentasSinFiltrar = new ArrayList<>(banco.getCuentas());
+		List<CuentaCorriente> cuentasCorrientesDeudoras = new ArrayList<>();
+		for (Cuenta aux : cuentasSinFiltrar) {
+			if (aux instanceof CuentaCorriente && aux.getSaldo() < 0) {
+				cuentasCorrientesDeudoras.add((CuentaCorriente) aux);
+			}
+		}
+		cuentasCorrientesDeudoras.sort(Comparator.comparing(Cuenta::getSaldo));
+	}
+
 }

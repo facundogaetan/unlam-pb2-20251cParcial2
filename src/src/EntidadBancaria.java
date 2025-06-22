@@ -7,3 +7,5 @@ public interface EntidadBancaria {
   void agregarCuenta(Cuenta unaCuenta) throws ClienteInexistenteException;
   void agregarCliente(Cliente unCliente) throws ClienteDuplicadoException;
 }
+
+

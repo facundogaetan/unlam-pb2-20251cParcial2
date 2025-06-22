@@ -32,10 +32,10 @@ public class Banco {
 		cuentas.put(cuenta.getCbu(), cuenta);
 	}
 
-	public Cuenta getCuenta(String cbu) throws CuentaInexistenteException {
+	public Cuenta getCuenta(String cbu) throws CuentaNoExisteException {
 		Cuenta cuentaBuscada = cuentas.get(cbu);
 		if (cuentaBuscada == null) {
-			throw new CuentaInexistenteException("No existe cuenta con el cbu: " + cbu);
+			throw new CuentaNoExisteException("No existe cuenta con el cbu: " + cbu);
 		}
 		return cuentaBuscada;
 	}
@@ -44,7 +44,7 @@ public class Banco {
 		return clientes.values();
 	}
 
-	private Collection<Cuenta> getCuentas() {
+	public Collection<Cuenta> getCuentas() {
 		return cuentas.values();
 	}
 

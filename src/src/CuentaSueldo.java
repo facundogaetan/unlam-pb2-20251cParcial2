@@ -8,6 +8,15 @@ public class CuentaSueldo extends Cuenta{
 	}
 	//
 	//cbu dni saldo inicial
+	
+	@Override
+	public void extraer(Double montoAExtraer) throws SaldoInsuficienteException  {
+		if (montoAExtraer > this.getSaldo()) {
+			throw new SaldoInsuficienteException("Saldo insuficiente");
+		}
+		this.setSaldo(this.getSaldo()- montoAExtraer);
+		
+	}
 
 	
 
